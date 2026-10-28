@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>nottte</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="nottte">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F7F5F3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0E0D" media="(prefers-color-scheme: dark)">
+<style>
+@font-face { font-family: "Pretendard Variable"; src: url("fonts/PretendardVariable.woff2") format("woff2-variations"), url("fonts/PretendardVariable.woff2") format("woff2"); font-weight: 45 920; font-display: swap }
+:root {
+  --bg: #F7F5F3; --ink: #141413; --mute: #8E8B87; --line: #E6E2DD; --tile: #ECE8E3;
+  --f-body: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root { --bg: #0E0E0D; --ink: #F1EFEC; --mute: #7E7B77; --line: #262523; --tile: #1A1918; color-scheme: dark } }
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
+[hidden] { display: none !important }
+html, body { height: 100%; margin: 0 }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.55; overflow: hidden;
+  display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px) }
+button, textarea { font: inherit; color: inherit }
+button { cursor: pointer; background: none; border: 0; padding: 0 }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px }
+
+.bar { position: relative; display: flex; align-items: center; justify-content: center; flex: none;
+  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); padding-block: 14px }
+.bar h1 { margin: 0; line-height: 0 }
+.logo { display: block; height: 20px; aspect-ratio: 583 / 143; background: var(--ink);
+  -webkit-mask: url("icons/logo-mask.png") center / contain no-repeat; mask: url("icons/logo-mask.png") center / contain no-repeat }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap }
+.more { position: absolute; right: max(10px, env(safe-area-inset-right, 0px)); top: 50%; transform: translateY(-50%); width: 36px; height: 36px; display: grid; place-items: center; color: var(--mute) }
+.more-menu { position: absolute; right: max(12px, env(safe-area-inset-right, 0px)); top: calc(100% - 4px); z-index: 30; display: grid; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 5px; box-shadow: 0 8px 24px rgb(0 0 0 / .14) }
+.more-menu button { padding: 8px 16px; border-radius: 8px; text-align: left; font-size: 13px; white-space: nowrap }
+.more-menu button:hover { background: var(--tile) }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 40; background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 13px; white-space: nowrap }
+
+.map { flex: 1; position: relative; overflow: auto; touch-action: pan-x pan-y; overscroll-behavior: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch }
+.map::-webkit-scrollbar { display: none }
+.sizer { position: relative }
+.board { position: absolute; left: 0; top: 0; transform-origin: 0 0 }
+.overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5 }
+.overlay > .acts { pointer-events: auto }
+.board svg { position: absolute; inset: 0; pointer-events: none }
+.node { position: absolute; width: 132px; z-index: 1; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; cursor: grab }
+.ph { position: relative }
+.node img { width: 100%; height: auto; min-height: 60px; display: block; border-radius: 3px; background: var(--tile); pointer-events: none; outline: 1.5px solid transparent; outline-offset: 4px }
+.node.lift { z-index: 3; cursor: grabbing }
+.node.lift img { box-shadow: 0 12px 32px rgb(0 0 0 / .22) }
+@media (prefers-reduced-motion: no-preference) { .node img { transition: transform .18s, box-shadow .18s } .node.lift img { transform: scale(1.05) } }
+.node.sel { z-index: 4 }
+.node.sel img { outline-color: var(--ink) }
+.acts { position: absolute; display: grid; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 5px; box-shadow: 0 8px 24px rgb(0 0 0 / .12); white-space: nowrap; touch-action: manipulation; cursor: default }
+.acts.flip { transform: translateX(-100%) }
+.acts.below { grid-auto-flow: column }
+.acts button { padding: 7px 14px; border-radius: 8px; text-align: left; font-size: 13px }
+.acts button:hover { background: var(--tile) }
+.acts .wait { padding: 7px 14px; font-size: 13px; color: var(--mute) }
+.note { position: absolute; padding: 6px 8px; border-radius: 6px; background: var(--bg); font-size: 13px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 280px; cursor: default }
+.note.none { color: var(--mute) }
+.handle { position: absolute; right: -8px; bottom: -8px; width: 18px; height: 18px; border-radius: 50%; background: var(--bg); border: 1.5px solid var(--ink); touch-action: none; cursor: nwse-resize; transform: scale(var(--inv, 1)) }
+
+.add { position: fixed; z-index: 15; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom, 0px)); display: grid; justify-items: center; gap: 10px }
+.fab { width: 56px; height: 56px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; box-shadow: 0 6px 20px rgb(0 0 0 / .18) }
+@media (prefers-reduced-motion: no-preference) { .fab { transition: transform .2s } }
+.fab[aria-expanded="true"] { transform: rotate(45deg) }
+.add-menu { display: grid; gap: 2px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 6px; box-shadow: 0 8px 28px rgb(0 0 0 / .14) }
+.add-menu button { padding: 9px 22px; border-radius: 9px; font-size: 14px; white-space: nowrap }
+.add-menu button:hover { background: var(--tile) }
+.empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--mute); font-size: 14px; pointer-events: none }
+
+.sheet { position: fixed; inset: 0; z-index: 20; background: var(--bg); overflow-y: auto;
+  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+  padding-top: calc(14px + env(safe-area-inset-top, 0px)); padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)) }
+.sheet-in { max-width: 1100px; margin: 0 auto; display: grid; gap: 18px }
+.sheet-top { display: flex; justify-content: space-between; align-items: center; gap: 16px }
+.sheet-top span { color: var(--mute); font-size: 13px; font-variant-numeric: tabular-nums }
+.nav { display: flex; gap: 18px; align-items: center }
+.nav button { font-size: 14px; color: var(--mute) }
+.nav button:last-child { color: var(--ink) }
+.sheet-body { display: grid; gap: 18px }
+@media (min-width: 860px) { .sheet-body { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 36px; align-items: start } }
+.photo { width: 100%; max-height: 70vh; object-fit: contain; display: block; border-radius: 3px; background: var(--tile) }
+textarea { width: 100%; min-height: 40vh; border: 0; background: transparent; resize: none; font-size: 16px; line-height: 1.7; padding: 0; outline: none }
+textarea::placeholder { color: var(--mute) }
+.saved { color: var(--mute); font-size: 12px; min-height: 1.4em }
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1><span class="logo" aria-hidden="true"></span><span class="sr">nottte</span></h1>
+  <button type="button" class="more" id="more" aria-label="메뉴" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="3.5" cy="9" r="1.4" fill="currentColor"/><circle cx="9" cy="9" r="1.4" fill="currentColor"/><circle cx="14.5" cy="9" r="1.4" fill="currentColor"/></svg></button>
+  <div class="more-menu" id="more-menu" hidden>
+    <button type="button" id="btn-export">백업 내보내기</button>
+    <button type="button" id="btn-import">백업 불러오기</button>
+  </div>
+</header>
+<main class="map" id="map"><div class="sizer" id="sizer"><div class="board" id="board"><svg id="lines"></svg></div><div class="overlay" id="overlay"></div></div><div class="empty" id="empty">불러오는 중</div></main>
+
+<div class="add" id="add">
+  <div class="add-menu" id="add-menu" hidden>
+    <button type="button" id="btn-cam">사진 찍기</button>
+    <button type="button" id="btn-album">앨범</button>
+  </div>
+  <button type="button" class="fab" id="fab" aria-label="사진 추가" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5v15M2.5 10h15" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg></button>
+</div>
+
+<input type="file" id="in-cam" accept="image/*" capture="environment" hidden>
+<input type="file" id="in-album" accept="image/*" hidden>
+<input type="file" id="in-backup" accept="application/json,.json" hidden>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<section class="sheet" id="sheet" hidden>
+  <div class="sheet-in">
+    <div class="sheet-top">
+      <span id="s-date"></span>
+      <nav class="nav">
+        <button type="button" id="s-del">지우기</button>
+        <button type="button" id="s-close">닫기</button>
+      </nav>
+    </div>
+    <div class="sheet-body">
+      <img class="photo" id="s-photo" alt="">
+      <div>
+        <textarea id="s-note" aria-label="분석" placeholder="이 사물의 물성, 시간의 흔적, 손으로 느낀 것"></textarea>
+        <div class="saved" id="s-saved" role="status"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(() => {
+  const $ = (s) => document.getElementById(s);
+  const SVG = "http://www.w3.org/2000/svg", NW = 132, NH = 170;
+  const st = { items: [], links: [], loaded: false, sel: null, resizing: null, from: null, drag: false, pending: false, open: null };
+  const urls = {};
+  const byId = (id) => st.items.find((x) => x.id === id);
+  const key = (a, b) => (a < b ? a + "|" + b : b + "|" + a);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const fmt = (iso) => { const d = new Date(iso), p = (n) => String(n).padStart(2, "0"); return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+  const map = $("map"), board = $("board"), svg = $("lines"), sizer = $("sizer"), overlay = $("overlay");
+  const ZMIN = 0.3, ZMAX = 2.5, clampZ = (v) => Math.min(ZMAX, Math.max(ZMIN, v));
+  let z = 1; try { z = clampZ(parseFloat(localStorage.getItem("nottte-zoom")) || 1); } catch {}
+  const pos = {};
+  const src = (x) => (urls[x.id] ||= URL.createObjectURL(x.photo));
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), 2600); }
+
+  /* ---------- storage (IndexedDB, this device) ---------- */
+  const dbp = new Promise((res, rej) => {
+    const r = indexedDB.open("nottte", 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore("items", { keyPath: "id" }); r.result.createObjectStore("meta"); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+  const req = (r) => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const store = async (name, mode) => (await dbp).transaction(name, mode).objectStore(name);
+  const put = async (x) => req((await store("items", "readwrite")).put(x));
+  const patch = async (id, fields) => { const x = byId(id); if (!x) return; Object.assign(x, fields); return put(x); };
+  const remove = async (id) => req((await store("items", "readwrite")).delete(id));
+  const saveLinks = async () => req((await store("meta", "readwrite")).put(st.links, "links")).catch(() => toast("선을 저장하지 못했어요"));
+
+  /* ---------- board ---------- */
+  function place() {
+    let i = 0;
+    for (const x of st.items) {
+      if (pos[x.id]) continue;
+      if (typeof x.mx === "number") pos[x.id] = { x: x.mx, y: x.my };
+      else { pos[x.id] = { x: 40 + (i % 3) * 180, y: 40 + Math.floor(i / 3) * 230 }; i++; }
+    }
+  }
+  function render() {
+    if (st.drag) { st.pending = true; return; }
+    place();
+    $("empty").hidden = st.loaded && st.items.length > 0;
+    if (!$("empty").hidden) $("empty").textContent = st.loaded ? "+ 를 눌러 시작해요" : "불러오는 중";
+    const ps = st.items.map((x) => pos[x.id]);
+    const W = Math.max(map.clientWidth / z, ...ps.map((p) => p.x + NW + 300));
+    const H = Math.max(map.clientHeight / z, ...ps.map((p) => p.y + NH + 300));
+    board.style.width = W + "px"; board.style.height = H + "px";
+    board.style.transform = `scale(${z})`; board.style.setProperty("--inv", String(1 / z));
+    sizer.style.width = W * z + "px"; sizer.style.height = H * z + "px";
+    svg.setAttribute("width", W); svg.setAttribute("height", H);
+    const keep = new Set(st.items.map((x) => x.id));
+    for (const el of [...board.querySelectorAll(".node")]) if (!keep.has(el.dataset.id)) el.remove();
+    for (const x of st.items) {
+      let el = board.querySelector(`.node[data-id="${x.id}"]`);
+      if (!el) {
+        el = document.createElement("div");
+        el.className = "node"; el.dataset.id = x.id; el.tabIndex = 0; el.setAttribute("role", "button");
+        const ph = document.createElement("div"); ph.className = "ph";
+        const img = document.createElement("img");
+        img.src = src(x); img.alt = ""; img.draggable = false; img.onload = lines;
+        ph.append(img); el.append(ph);
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); tap(x.id); } });
+        el.addEventListener("contextmenu", (e) => e.preventDefault());
+        bind(el, x.id);
+        board.append(el);
+      }
+      el.setAttribute("aria-label", "사진 " + fmt(x.createdAt));
+      el.style.left = pos[x.id].x + "px"; el.style.top = pos[x.id].y + "px";
+      el.style.width = (x.w || NW) + "px";
+      decorate(el, x);
+    }
+    overlay.dataset.for = ""; lines(); place2();
+  }
+  function btn(label, fn) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = label;
+    b.addEventListener("pointerdown", (e) => e.stopPropagation());
+    b.addEventListener("click", (e) => { e.stopPropagation(); fn(); });
+    return b;
+  }
+  function decorate(el, x) {
+    const sel = st.sel === x.id;
+    el.classList.toggle("sel", sel);
+    for (const n of el.querySelectorAll(".handle")) n.remove();
+    if (!sel || st.resizing !== x.id) return;
+    const hd = document.createElement("div"); hd.className = "handle"; hd.setAttribute("aria-label", "크기 조절");
+    hd.addEventListener("pointerdown", (e) => {
+      e.stopPropagation(); e.preventDefault();
+      try { hd.setPointerCapture(e.pointerId); } catch {}
+      const sx = e.clientX, sw = el.offsetWidth; let w = sw;
+      const mv = (ev) => { w = Math.round(Math.min(480, Math.max(80, sw + (ev.clientX - sx) / z))); el.style.width = w + "px"; lines(); place2(); };
+      const up = () => {
+        hd.removeEventListener("pointermove", mv); hd.removeEventListener("pointerup", up); hd.removeEventListener("pointercancel", up);
+        patch(x.id, { w }).catch(() => toast("크기를 저장하지 못했어요"));
+        render();
+      };
+      hd.addEventListener("pointermove", mv); hd.addEventListener("pointerup", up); hd.addEventListener("pointercancel", up);
+    });
+    el.querySelector(".ph").append(hd);
+  }
+  function overlayItems(x) {
+    overlay.replaceChildren();
+    const acts = document.createElement("div"); acts.className = "acts";
+    acts.addEventListener("pointerdown", (e) => e.stopPropagation());
+    if (st.from === x.id) {
+      const w = document.createElement("div"); w.className = "wait"; w.textContent = "이을 사진을 누르세요";
+      acts.append(w, btn("취소", () => { st.from = null; render(); }));
+    } else {
+      acts.append(
+        btn("선 잇기", () => { st.from = x.id; st.resizing = null; render(); }),
+        btn(st.resizing === x.id ? "크기 조절 완료" : "크기 조절", () => { st.resizing = st.resizing === x.id ? null : x.id; render(); }),
+        btn("수정하기", () => openSheet(x.id)));
+    }
+    const note = document.createElement("div");
+    note.className = "note" + (x.note ? "" : " none");
+    note.textContent = x.note || "적은 내용이 없어요";
+    note.addEventListener("pointerdown", (e) => e.stopPropagation());
+    overlay.append(note, acts);
+  }
+  // 선택한 사진의 메뉴와 글은 확대·축소와 상관없이 같은 크기로 보이도록 화면 좌표에 놓아요.
+  function place2() {
+    const x = st.sel && byId(st.sel);
+    if (!x) { overlay.replaceChildren(); return; }
+    if (!overlay.querySelector(".acts") || overlay.dataset.for !== x.id + "|" + st.from + "|" + st.resizing) { overlayItems(x); overlay.dataset.for = x.id + "|" + st.from + "|" + st.resizing; }
+    const img = board.querySelector(`.node[data-id="${x.id}"] img`); if (!img) return;
+    const p = pos[x.id], px = p.x * z, py = p.y * z, w = img.offsetWidth * z, h = img.offsetHeight * z;
+    const acts = overlay.querySelector(".acts"), note = overlay.querySelector(".note");
+    note.style.left = px - 8 + "px"; note.style.top = py + h + 8 + "px"; note.style.width = Math.max(w + 16, 200) + "px";
+    const aw = acts.offsetWidth || 150, viewR = map.scrollLeft + map.clientWidth;
+    acts.classList.remove("flip", "below");
+    if (px + w + 12 + aw <= viewR) {
+      acts.style.left = px + w + 12 + "px"; acts.style.top = py + "px";
+      if (py + acts.offsetHeight > py + h + 8) note.style.width = Math.max(w + 16, px + w + 12 - (px - 8) - 8) + "px";
+    }
+    else if (px - 12 - aw >= map.scrollLeft) { acts.classList.add("flip"); acts.style.left = px - 12 + "px"; acts.style.top = py + "px"; }
+    else { acts.classList.add("below"); acts.style.left = px + "px"; acts.style.top = py + h + 16 + note.offsetHeight + "px"; }
+  }
+  function lines() {
+    svg.replaceChildren();
+    const c = (id) => { const p = pos[id], el = board.querySelector(`.node[data-id="${id}"] img`); return p && el ? [p.x + (el.offsetWidth || NW) / 2, p.y + (el.offsetHeight || NH) / 2] : null; };
+    for (const l of st.links) {
+      const A = c(l.a), B = c(l.b); if (!A || !B) continue;
+      const ln = document.createElementNS(SVG, "line");
+      ln.setAttribute("x1", A[0]); ln.setAttribute("y1", A[1]); ln.setAttribute("x2", B[0]); ln.setAttribute("y2", B[1]);
+      ln.setAttribute("style", "stroke:var(--ink);stroke-width:1");
+      svg.append(ln);
+    }
+  }
+
+  /* ---------- touch ---------- */
+  function bind(el, id) {
+    let on = false, t = null, dragging = false, moved = false, sx = 0, sy = 0, lx = 0, ly = 0, ox = 0, oy = 0;
+    const end = (isTap) => {
+      clearTimeout(t); if (!on) return; on = false;
+      if (dragging) {
+        dragging = false; st.drag = false; el.classList.remove("lift");
+        const p = pos[id];
+        for (const x of st.items) if (x.id === id || typeof x.mx !== "number") patch(x.id, { mx: Math.round(pos[x.id].x), my: Math.round(pos[x.id].y) }).catch(() => {});
+        if (st.pending || p.x + NW + 200 > board.offsetWidth || p.y + NH + 200 > board.offsetHeight) { st.pending = false; render(); }
+      } else if (isTap && !moved && !st.pinching) tap(id);
+    };
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button > 0) return;
+      try { el.setPointerCapture(e.pointerId); } catch {}
+      on = true; moved = false; dragging = false; sx = lx = e.clientX; sy = ly = e.clientY; ox = pos[id].x; oy = pos[id].y;
+      t = setTimeout(() => { if (!on || moved) return; dragging = true; st.drag = true; el.classList.add("lift"); try { navigator.vibrate && navigator.vibrate(10); } catch {} }, 350);
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!on) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (st.pinching) { clearTimeout(t); moved = true; if (dragging) { pos[id] = { x: ox, y: oy }; el.style.left = ox + "px"; el.style.top = oy + "px"; } return; }
+      if (dragging) { pos[id] = { x: Math.max(0, ox + dx / z), y: Math.max(0, oy + dy / z) }; el.style.left = pos[id].x + "px"; el.style.top = pos[id].y + "px"; lines(); if (st.sel === id) place2(); }
+      else { if (!moved && Math.hypot(dx, dy) > 8) { moved = true; clearTimeout(t); } if (moved) { map.scrollLeft -= e.clientX - lx; map.scrollTop -= e.clientY - ly; } }
+      lx = e.clientX; ly = e.clientY;
+    });
+    el.addEventListener("pointerup", () => end(true));
+    el.addEventListener("pointercancel", () => end(false));
+  }
+  function tap(id) {
+    if (!st.from) { if (st.sel !== id) { st.sel = id; st.resizing = null; render(); } return; }
+    const a = st.from; st.from = null;
+    if (a !== id) {
+      const k = key(a, id);
+      st.links = st.links.some((l) => key(l.a, l.b) === k) ? st.links.filter((l) => key(l.a, l.b) !== k) : [...st.links, { a, b: id }];
+      saveLinks();
+    }
+    render();
+  }
+  board.addEventListener("click", (e) => { if (e.target === board || e.target === svg) { st.sel = null; st.from = null; st.resizing = null; render(); } });
+
+  /* ---------- zoom ---------- */
+  function setZoom(nz, cx, cy) {
+    nz = clampZ(nz); if (Math.abs(nz - z) < 0.001) return;
+    const bx = (map.scrollLeft + cx) / z, by = (map.scrollTop + cy) / z;
+    z = nz; render();
+    map.scrollLeft = bx * z - cx; map.scrollTop = by * z - cy;
+    clearTimeout(setZoom.t); setZoom.t = setTimeout(() => { try { localStorage.setItem("nottte-zoom", String(z)); } catch {} }, 300);
+  }
+  let pz = null;
+  const mid = (t) => { const r = map.getBoundingClientRect(); return [(t[0].clientX + t[1].clientX) / 2 - r.left, (t[0].clientY + t[1].clientY) / 2 - r.top]; };
+  const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  map.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 2) return;
+    st.pinching = true;
+    const [mx, my] = mid(e.touches);
+    pz = { d: dist(e.touches) || 1, z0: z, bx: (map.scrollLeft + mx) / z, by: (map.scrollTop + my) / z };
+  }, { passive: true });
+  map.addEventListener("touchmove", (e) => {
+    if (!pz || e.touches.length !== 2) return;
+    e.preventDefault();
+    const [mx, my] = mid(e.touches);
+    z = clampZ(pz.z0 * dist(e.touches) / pz.d); render();
+    map.scrollLeft = pz.bx * z - mx; map.scrollTop = pz.by * z - my;
+  }, { passive: false });
+  const pinchEnd = (e) => {
+    if (e.touches.length < 2 && pz) { pz = null; try { localStorage.setItem("nottte-zoom", String(z)); } catch {} }
+    if (e.touches.length === 0) setTimeout(() => { st.pinching = false; }, 50);
+  };
+  map.addEventListener("touchend", pinchEnd); map.addEventListener("touchcancel", pinchEnd);
+  map.addEventListener("wheel", (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    const r = map.getBoundingClientRect();
+    setZoom(z * Math.exp(-e.deltaY * 0.01), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  board.addEventListener("dblclick", (e) => {
+    if (e.target !== board && e.target !== svg) return;
+    const r = map.getBoundingClientRect();
+    setZoom(z === 1 ? 0.6 : 1, e.clientX - r.left, e.clientY - r.top);
+  });
+
+  /* ---------- menus ---------- */
+  const addMenu = (open) => { $("add-menu").hidden = !open; $("fab").setAttribute("aria-expanded", String(open)); };
+  const moreMenu = (open) => { $("more-menu").hidden = !open; $("more").setAttribute("aria-expanded", String(open)); };
+  $("fab").onclick = (e) => { e.stopPropagation(); moreMenu(false); addMenu($("add-menu").hidden); };
+  $("more").onclick = (e) => { e.stopPropagation(); addMenu(false); moreMenu($("more-menu").hidden); };
+  document.addEventListener("click", (e) => {
+    if (!$("add").contains(e.target)) addMenu(false);
+    if (!$("more").contains(e.target) && !$("more-menu").contains(e.target)) moreMenu(false);
+  });
+
+  /* ---------- capture ---------- */
+  const pick = (input) => { addMenu(false); input.value = ""; input.click(); };
+  $("btn-cam").onclick = () => pick($("in-cam"));
+  $("btn-album").onclick = () => pick($("in-album"));
+  for (const id of ["in-cam", "in-album"]) $(id).addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try {
+      const photo = await shrink(f);
+      const { x: mx, y: my } = freeSpot(Math.max(20, (map.scrollLeft + map.clientWidth / 2) / z - NW / 2), Math.max(20, (map.scrollTop + map.clientHeight / 2) / z - NH / 2));
+      const x = { id: uid(), photo, createdAt: new Date().toISOString(), note: "", mx, my };
+      await put(x);
+      st.items.push(x); pos[x.id] = { x: mx, y: my }; st.sel = x.id;
+      render(); openSheet(x.id, true);
+    } catch { toast("사진을 저장하지 못했어요"); }
+  });
+  function freeSpot(cx, cy) {
+    const boxes = st.items.map((x) => { const p = pos[x.id], el = board.querySelector(`.node[data-id="${x.id}"]`); return p ? [p.x, p.y, (x.w || NW), el ? el.offsetHeight : NH] : null; }).filter(Boolean);
+    const free = (x, y) => x >= 0 && y >= 0 && !boxes.some(([bx, by, bw, bh]) => x < bx + bw + 24 && x + NW + 24 > bx && y < by + bh + 24 && y + NH + 24 > by);
+    for (let r = 0; r < 12; r++) for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) {
+      if (Math.max(Math.abs(i), Math.abs(j)) !== r) continue;
+      const x = Math.round(cx + i * 170), y = Math.round(cy + j * 210);
+      if (free(x, y)) return { x, y };
+    }
+    return { x: Math.round(cx), y: Math.round(cy) };
+  }
+  function shrink(file) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const s = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
+        c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        c.toBlob((b) => (b ? res(b) : rej()), "image/jpeg", 0.86);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); rej(); };
+      img.src = url;
+    });
+  }
+
+  /* ---------- sheet ---------- */
+  let timer = null, confirmDel = false;
+  function openSheet(id, fresh) {
+    const x = byId(id); if (!x) return;
+    st.open = id; confirmDel = false; $("s-del").textContent = "지우기";
+    $("s-photo").src = src(x);
+    $("s-date").textContent = fmt(x.createdAt);
+    $("s-note").value = x.note || "";
+    $("s-saved").textContent = "";
+    $("sheet").hidden = false; addMenu(false); moreMenu(false);
+    if (fresh) $("s-note").focus();
+  }
+  function saveNote() {
+    clearTimeout(timer);
+    const id = st.open, note = $("s-note").value, x = byId(id);
+    if (!x || (x.note || "") === note) return;
+    patch(id, { note }).then(() => { if (st.open === id) $("s-saved").textContent = "저장됨"; }).catch(() => { if (st.open === id) $("s-saved").textContent = "저장하지 못했어요"; });
+  }
+  $("s-note").addEventListener("input", () => { $("s-saved").textContent = ""; clearTimeout(timer); timer = setTimeout(saveNote, 700); });
+  $("s-note").addEventListener("blur", saveNote);
+  $("s-close").onclick = () => { saveNote(); st.open = null; $("sheet").hidden = true; render(); };
+  $("s-del").onclick = async () => {
+    if (!confirmDel) { confirmDel = true; $("s-del").textContent = "한 번 더 누르면 지워져요"; return; }
+    const id = st.open; clearTimeout(timer);
+    try {
+      await remove(id);
+      if (urls[id]) { URL.revokeObjectURL(urls[id]); delete urls[id]; }
+      st.items = st.items.filter((y) => y.id !== id); delete pos[id];
+      if (st.links.some((l) => l.a === id || l.b === id)) { st.links = st.links.filter((l) => l.a !== id && l.b !== id); saveLinks(); }
+      if (st.sel === id) st.sel = null;
+      st.open = null; $("sheet").hidden = true; render();
+    } catch { $("s-saved").textContent = "지우지 못했어요"; }
+  };
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("sheet").hidden) $("s-close").click(); });
+
+  /* ---------- backup ---------- */
+  const toDataURL = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+  $("btn-export").onclick = async () => {
+    moreMenu(false);
+    try {
+      const items = [];
+      for (const x of st.items) items.push({ ...x, photo: await toDataURL(x.photo) });
+      const blob = new Blob([JSON.stringify({ app: "nottte", version: 1, exportedAt: new Date().toISOString(), items, links: st.links })], { type: "application/json" });
+      const d = new Date(), p = (n) => String(n).padStart(2, "0");
+      const name = `nottte-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.json`;
+      const file = new File([blob], name, { type: "application/json" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+      }
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast("백업 파일을 저장했어요");
+    } catch { toast("백업하지 못했어요"); }
+  };
+  $("btn-import").onclick = () => { moreMenu(false); $("in-backup").value = ""; $("in-backup").click(); };
+  $("in-backup").addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (!data || data.app !== "nottte" || !Array.isArray(data.items)) throw 0;
+      let added = 0;
+      for (const it of data.items) {
+        if (!it || typeof it.id !== "string" || byId(it.id) || typeof it.photo !== "string") continue;
+        const photo = await (await fetch(it.photo)).blob();
+        const x = { id: it.id, photo, createdAt: String(it.createdAt || new Date().toISOString()), note: String(it.note || ""),
+          mx: Number.isFinite(it.mx) ? it.mx : undefined, my: Number.isFinite(it.my) ? it.my : undefined, w: Number.isFinite(it.w) ? it.w : undefined };
+        await put(x); st.items.push(x); added++;
+      }
+      const ids = new Set(st.items.map((x) => x.id)), have = new Set(st.links.map((l) => key(l.a, l.b)));
+      for (const l of Array.isArray(data.links) ? data.links : []) if (l && ids.has(l.a) && ids.has(l.b) && !have.has(key(l.a, l.b))) { st.links.push({ a: l.a, b: l.b }); have.add(key(l.a, l.b)); }
+      await saveLinks();
+      st.items.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      render(); toast(`사진 ${added}장을 불러왔어요`);
+    } catch { toast("nottte 백업 파일이 아니에요"); }
+  });
+
+  /* ---------- boot ---------- */
+  addEventListener("resize", () => { if (!st.drag) render(); });
+  (async () => {
+    try {
+      const all = await req((await store("items", "readonly")).getAll());
+      st.items = all.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      st.links = (await req((await store("meta", "readonly")).get("links"))) || [];
+    } catch { toast("저장 공간을 열 수 없어요"); }
+    st.loaded = true; render();
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch {}
+  })();
+  if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+})();
+</script>
+</body>
+</html>
