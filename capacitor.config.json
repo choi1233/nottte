@@ -1,0 +1,6 @@
+{
+  "appId": "app.nottte",
+  "appName": "nottte",
+  "webDir": "www",
+  "android": { "backgroundColor": "#F7F5F3" }
+}

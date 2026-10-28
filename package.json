@@ -1,0 +1,16 @@
+{
+  "name": "nottte",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "android": "bash scripts/build-android.sh"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.6.9",
+    "@capacitor/core": "7.6.9"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "7.6.9"
+  }
+}

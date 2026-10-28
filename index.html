@@ -16,11 +16,11 @@
 <style>
 @font-face { font-family: "Pretendard Variable"; src: url("fonts/PretendardVariable.woff2") format("woff2-variations"), url("fonts/PretendardVariable.woff2") format("woff2"); font-weight: 45 920; font-display: swap }
 :root {
-  --bg: #F7F5F3; --ink: #141413; --mute: #8E8B87; --line: #E6E2DD; --tile: #ECE8E3;
+  --bg: #F7F5F3; --ink: #141413; --mute: #8E8B87; --line: #E6E2DD; --tile: #ECE8E3; --field: #EDEDED;
   --f-body: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) { :root { --bg: #0E0E0D; --ink: #F1EFEC; --mute: #7E7B77; --line: #262523; --tile: #1A1918; color-scheme: dark } }
+@media (prefers-color-scheme: dark) { :root { --bg: #0E0E0D; --ink: #F1EFEC; --mute: #7E7B77; --line: #262523; --tile: #1A1918; --field: #262626; color-scheme: dark } }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
 [hidden] { display: none !important }
@@ -89,9 +89,10 @@ button { cursor: pointer; background: none; border: 0; padding: 0 }
 .sheet-body { display: grid; gap: 18px }
 @media (min-width: 860px) { .sheet-body { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 36px; align-items: start } }
 .photo { width: 100%; max-height: 70vh; object-fit: contain; display: block; border-radius: 3px; background: var(--tile) }
-textarea { width: 100%; min-height: 40vh; border: 0; background: transparent; resize: none; font-size: 16px; line-height: 1.7; padding: 0; outline: none }
+textarea { width: 100%; min-height: 40vh; border: 0; background: var(--field); border-radius: 14px; resize: none; font-size: 16px; line-height: 1.7; padding: 16px 18px; outline: none; display: block }
+textarea:focus, textarea:focus-visible { outline: none }
 textarea::placeholder { color: var(--mute) }
-.saved { color: var(--mute); font-size: 12px; min-height: 1.4em }
+.saved { color: var(--mute); font-size: 12px; min-height: 1.4em; margin-top: 8px; padding-left: 4px }
 </style>
 </head>
 <body>

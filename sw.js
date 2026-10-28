@@ -1,6 +1,6 @@
 // 앱 파일만 캐시해요. 사진과 기록은 IndexedDB에 따로 있어서, 앱을 업데이트해도 지워지지 않아요.
 // 업데이트를 올릴 때 VERSION 숫자만 올리면 돼요.
-const VERSION = "nottte-v1";
+const VERSION = "nottte-v3";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "fonts/PretendardVariable.woff2",
   "icons/logo-mask.png", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
