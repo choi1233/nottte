@@ -17,7 +17,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - uses: android-actions/setup-android@v3
       - run: npm install
       - run: bash scripts/build-android.sh
       - uses: actions/upload-artifact@v4
