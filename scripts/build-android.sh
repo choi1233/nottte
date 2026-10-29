@@ -19,7 +19,11 @@ grep -q 'android.permission.CAMERA' "$MANIFEST" || sed -i 's#<uses-permission an
 
 # 5. 매번 같은 서명 열쇠와 올라가는 버전 번호 쓰기
 #    (서명이 같아야 새 APK를 덮어 설치할 수 있고, 그래야 기록이 그대로 남아요)
-mkdir -p "$HOME/.android" && cp signing/debug.keystore "$HOME/.android/debug.keystore"
+GRADLE=android/app/build.gradle
+if ! grep -q 'signing/debug.keystore' "$GRADLE"; then
+  sed -i '0,/^android {/s//android {\n    signingConfigs {\n        debug {\n            storeFile file("${rootDir}\/..\/signing\/debug.keystore")\n            storePassword "android"\n            keyAlias "androiddebugkey"\n            keyPassword "android"\n        }\n    }/' "$GRADLE"
+fi
+grep -q 'signing/debug.keystore' "$GRADLE" || { echo "서명 설정을 넣지 못했어요"; exit 1; }
 VC="${GITHUB_RUN_NUMBER:-1}"
 sed -i -E "s/versionCode [0-9]+/versionCode $VC/; s/versionName \"[^\"]*\"/versionName \"1.0.$VC\"/" android/app/build.gradle
 
